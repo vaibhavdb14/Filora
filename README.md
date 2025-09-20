@@ -33,6 +33,7 @@ It allows users to upload, manage, and securely share files with other registere
 2. **Add Firebase configuration**
 In your HTML/JS files where Firebase is initialized, replace placeholders with your Firebase credentials:
 
+```bash
 const firebaseConfig = {
   apiKey: "YOUR_FIREBASE_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -46,6 +47,7 @@ const firebaseConfig = {
 3. **Add Pinata API keys**
 In the upload section of your dashboard JS:
 
+```bash
 xhr.setRequestHeader("pinata_api_key", "YOUR_PINATA_API_KEY");
 xhr.setRequestHeader("pinata_secret_api_key", "YOUR_PINATA_SECRET");
 
