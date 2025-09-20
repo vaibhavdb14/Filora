@@ -42,7 +42,7 @@ const firebaseConfig = {
   messagingSenderId: "YOUR_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
-
+```
 
 3. **Add Pinata API keys**
 In the upload section of your dashboard JS:
@@ -50,7 +50,7 @@ In the upload section of your dashboard JS:
 ```bash
 xhr.setRequestHeader("pinata_api_key", "YOUR_PINATA_API_KEY");
 xhr.setRequestHeader("pinata_secret_api_key", "YOUR_PINATA_SECRET");
-
+```
 
 4. **Open project in browser**
 Simply open index.html in any browser.
