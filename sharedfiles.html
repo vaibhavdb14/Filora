@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Files</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #97E7E1, #AC87C5);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            padding: 10px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+            color: black;
+        }
+
+        .files-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .file-card {
+            background: white;
+            color: black;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-card h2 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .btn-container {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+        }
+
+        .view {
+            background: #7F00FF;
+        }
+
+        .download {
+            background: #28a745;
+        }
+
+        .remove {
+            background: #dc3545;
+        }
+
+        .btn:disabled {
+            background: gray;
+            cursor: not-allowed;
+        }
+
+        /* Viewer Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 10px;
+            background: #333;
+            color: white;
+            text-align: center;
+        }
+
+        .modal-body {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-body iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .modal-footer {
+            padding: 10px;
+            background: #333;
+            text-align: center;
+        }
+
+        .close-btn {
+            padding: 10px 15px;
+            background: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Shared Files</h1>
+            <div class="search-box">
+                <input type="text" id="search" placeholder="Search files...">
+            </div>
+        </div>
+        <div class="files-container" id="files-container">
+            <!-- Files will be populated here dynamically -->
+        </div>
+    </div>
+
+    <!-- File Viewer Modal -->
+    <div id="fileViewerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>File Viewer</h2>
+            </div>
+            <div class="modal-body">
+                <iframe id="fileViewer" src=""></iframe>
+            </div>
+            <div class="modal-footer">
+                <button class="close-btn" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getDatabase, ref, get, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        // Firebase Configuration (Replace with your credentials)
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "your-project.firebaseapp.com",
+            databaseURL: "databse-url",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "xxxx",
+            appId: "1:xxxx:web:xxxx"
+        };
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Get Logged-in User
+        const userEmail = localStorage.getItem("userEmail");
+
+        if (!userEmail) {
+            alert("User not logged in! Redirecting to login page...");
+            window.location.href = "index.html"; // Redirect to login if email is missing
+        }
+
+        const userKey = btoa(userEmail); // Convert email to Firebase key
+
+        // Fetch Shared Files
+        async function fetchSharedFiles() {
+            const sharedFilesRef = ref(db, `users/${userKey}/shared_files`);
+            const snapshot = await get(sharedFilesRef);
+
+            if (!snapshot.exists()) {
+                document.getElementById("files-container").innerHTML = "<p>No shared files found.</p>";
+                return;
+            }
+
+            const files = snapshot.val();
+            displayFiles(files);
+        }
+
+        function displayFiles(files) {
+            const container = document.getElementById("files-container");
+            container.innerHTML = "";
+        
+            Object.keys(files).forEach(fileId => {
+                const file = files[fileId];
+                const isDownloadable = file.permission === "download";
+                const fileName = file.fileName || "Unnamed File"; // ✅ Use actual file name
+        
+                container.innerHTML += `
+                    <div class="file-card">
+                        <h2>${fileName}</h2> <!-- ✅ Display file name -->
+                        <p>Permission: ${file.permission}</p>
+                        <p>Shared by: ${file.shared_by || "Unknown"}</p>
+                        <p>Date: ${new Date(file.timestamp).toLocaleString()}</p>
+                        <div class="btn-container">
+                            <button class="btn view" onclick="viewFile('${file.cid}')">View</button>
+                            <button class="btn download" onclick="downloadFile('${file.cid}')" ${isDownloadable ? "" : "disabled"}>Download</button>
+                            <button class="btn remove" onclick="removeFile('${fileId}')">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+
+        window.viewFile = function (cid) {
+            const viewer = document.getElementById("fileViewer");
+            viewer.src = `https://docs.google.com/gview?url=https://ipfs.io/ipfs/${cid}&embedded=true`;
+            document.getElementById("fileViewerModal").style.display = "block";
+        };
+
+        window.downloadFile = async function (cid) {
+            const downloadUrl = `https://ipfs.io/ipfs/${cid}`;
+        
+            try {
+                const response = await fetch(downloadUrl);
+                if (!response.ok) {
+                    throw new Error("File download failed.");
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+        
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "downloaded_file"; // You can customize the filename
+                document.body.appendChild(a);
+                a.click();
+        
+                // Cleanup
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error("Error downloading file:", error);
+                alert("Failed to download file.");
+            }
+        };
+        
+        
+
+        window.removeFile = async function (fileId) {
+            await remove(ref(db, `users/${userKey}/shared_files/${fileId}`));
+            fetchSharedFiles(); // Refresh the list
+        };
+
+        window.closeModal = function () {
+            document.getElementById("fileViewerModal").style.display = "none";
+        };
+
+        fetchSharedFiles();
+    </script>
+</body>
+
+</html>

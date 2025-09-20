@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Secure File Sharing</title>
+  <link rel="stylesheet" href="desktop.css" />
+  <style>
+    #progressContainer {
+      margin-top: 20px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #progressBar {
+      width: 80%;
+      height: 20px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+
+    #progressFill {
+      height: 100%;
+      width: 0%;
+      background-color: #0D9276;
+      transition: width 0.2s ease;
+    }
+
+    #timeRemaining {
+      font-size: 0.9rem;
+      color: #333;
+    }
+
+    .cid-container {
+      margin-top: 10px;
+    }
+
+    .copy-btn {
+      margin-left: 10px;
+      background-color: #A91079;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .copy-btn:hover {
+      background-color: #8b0d66;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <h1>Filora</h1>
+    </div>
+  </header>
+
+  <section id="hero">
+    <h2>Your files, securely shared with blockchain technology.</h2>
+    <p>Upload and share files with full encryption and integrity.</p>
+  </section>
+
+  <section id="upload">
+    <h2>Upload Your Files</h2>
+    <form id="fileUploadForm">
+      <input type="file" id="fileInput" name="file" accept="*/*" required />
+      <button type="submit">Upload File</button>
+
+      <div id="progressContainer">
+        <div id="progressBar">
+          <div id="progressFill"></div>
+        </div>
+        <div id="timeRemaining">Estimating time...</div>
+      </div>
+    </form>
+    <div id="uploadStatus"></div>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 Filora. All rights reserved.</p>
+  </footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getDatabase, ref, set, push } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+    const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "your-project.firebaseapp.com",
+            databaseURL: "databse-url",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "xxxx",
+            appId: "1:xxxx:web:xxxx"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const userEmail = localStorage.getItem("userEmail");
+      if (!userEmail) {
+        alert("User not logged in! Redirecting to login page...");
+        window.location.href = "index.html";
+      }
+    });
+
+    document.getElementById("fileUploadForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const fileInput = document.getElementById("fileInput");
+      if (fileInput.files.length === 0) {
+        alert("Please select a file to upload!");
+        return;
+      }
+
+      const userEmail = localStorage.getItem("userEmail");
+      if (!userEmail) {
+        alert("User not logged in! Please log in first.");
+        return;
+      }
+
+      const encodedEmail = btoa(userEmail);
+      const file = fileInput.files[0];
+      const fileName = file.name;
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadStatus = document.getElementById("uploadStatus");
+      const progressContainer = document.getElementById("progressContainer");
+      const progressFill = document.getElementById("progressFill");
+      const timeRemaining = document.getElementById("timeRemaining");
+
+      uploadStatus.innerText = "Uploading file to IPFS... Please wait.";
+      progressContainer.style.display = "flex";
+      progressFill.style.width = "0%";
+      timeRemaining.innerText = "Estimating time...";
+
+      const xhr = new XMLHttpRequest();
+      let startTime = Date.now();
+
+      xhr.upload.onprogress = function (event) {
+        if (event.lengthComputable) {
+          const percent = (event.loaded / event.total) * 100;
+          progressFill.style.width = percent.toFixed(2) + "%";
+
+          const elapsed = (Date.now() - startTime) / 1000;
+          const rate = event.loaded / elapsed;
+          const remainingTime = ((event.total - event.loaded) / rate).toFixed(1);
+          timeRemaining.innerText = `Time remaining: ~${remainingTime}s`;
+        }
+      };
+
+      xhr.onload = async function () {
+        if (xhr.status === 200) {
+          const result = JSON.parse(xhr.responseText);
+          const cid = result.IpfsHash;
+          uploadStatus.innerHTML = `
+            <div class="cid-container">
+              ✅ File uploaded successfully!<br>
+              CID: <a href="https://ipfs.io/ipfs/${cid}" target="_blank" id="cid-link">${cid}</a>
+              <button class="copy-btn" onclick="copyCID('${cid}')">Copy</button>
+            </div>`;
+          progressFill.style.width = "100%";
+          timeRemaining.innerText = "Upload complete ✅";
+
+          saveCidToFirebase(encodedEmail, cid, fileName);
+        } else {
+          uploadStatus.innerText = "❌ Error uploading file!";
+          console.error(xhr.responseText);
+        }
+      };
+
+      xhr.onerror = function () {
+        uploadStatus.innerText = "❌ Network error during upload!";
+      };
+
+      xhr.open("POST", "https://api.pinata.cloud/pinning/pinFileToIPFS", true);
+      xhr.setRequestHeader("pinata_api_key", "put_pinnata_api_key");
+      xhr.setRequestHeader("pinata_secret_api_key", "put_pinnata_secret_api_key");
+      xhr.send(formData);
+    });
+
+    function saveCidToFirebase(userKey, cid, fileName) {
+      const timestamp = new Date().toISOString();
+      const userFilesRef = ref(db, `users/${userKey}/uploaded_files`);
+      const newFileRef = push(userFilesRef);
+      set(newFileRef, {
+        cid: cid,
+        fileName: fileName,
+        timestamp: timestamp
+      })
+      .then(() => {
+        console.log("File saved under:", userKey);
+      })
+      .catch((error) => {
+        console.error("Firebase save error:", error);
+      });
+    }
+
+    window.copyCID = function (cid) {
+      navigator.clipboard.writeText(cid)
+        .then(() => {
+          alert("CID copied to clipboard!");
+        })
+        .catch(err => {
+          console.error("Failed to copy: ", err);
+        });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Secure File Sharing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #97E7E1, #AC87C5);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .container {
+      background-color: white;
+      padding: 40px 30px;
+      border-radius: 16px;
+      box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 420px;
+      animation: slideUp 1s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #A91079;
+      font-size: 1.8rem;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 10px 0;
+      border: 2px solid #97E7E1;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #0D9276;
+      box-shadow: 0 0 10px rgba(13, 146, 118, 0.2);
+    }
+
+    select {
+      background-color: #f8f8f8;
+    }
+
+    label {
+      font-weight: bold;
+      color: #3b3b3b;
+      text-align: left;
+      display: block;
+      margin-top: 10px;
+    }
+
+    button {
+      background: linear-gradient(to right, #08C2FF, #0D9276);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      background: linear-gradient(to right, #0D9276, #08C2FF);
+      transform: translateY(-2px);
+    }
+
+    .message {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 1rem;
+      min-height: 24px;
+      transition: opacity 0.3s ease;
+    }
+
+    .message:empty {
+      opacity: 0;
+    }
+
+    .footer {
+      margin-top: 25px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>📤 Share File</h2>
+    <input type="email" id="recipientEmail" placeholder="Recipient's email" required />
+    <input type="text" id="fileCID" placeholder="File CID" required />
+    
+    <label for="permission">Permission</label>
+    <select id="permission">
+      <option value="read">Read</option>
+      <option value="write">Write</option>
+      <option value="download">Download</option>
+      <option value="share">Share</option>
+    </select>
+
+    <button id="shareButton">Share File</button>
+    <div class="message" id="message"></div>
+    <div class="footer">🔐 Secure File Sharing System</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getDatabase, ref, get, push, set } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_FIREBASE_API_KEY",
+      authDomain: "your-project.firebaseapp.com",
+      databaseURL: "your-databse-url",
+      projectId: "your-project-id",
+      storageBucket: "your-project.appspot.com",
+      messagingSenderId: "xxxx",
+      appId: "1:xxxx:web:xxxx"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    async function shareFile() {
+      const recipientEmail = document.getElementById("recipientEmail").value.trim();
+      const fileCID = document.getElementById("fileCID").value.trim();
+      const permission = document.getElementById("permission").value;
+      const messageDiv = document.getElementById("message");
+
+      if (!recipientEmail || !fileCID) {
+        messageDiv.style.color = "red";
+        messageDiv.innerText = "⚠️ Please fill in all fields!";
+        return;
+      }
+
+      const senderEmail = localStorage.getItem("userEmail");
+      if (!senderEmail) {
+        messageDiv.style.color = "red";
+        messageDiv.innerText = "❌ User not logged in!";
+        return;
+      }
+
+      const recipientKey = btoa(recipientEmail);
+      const senderKey = btoa(senderEmail);
+
+      try {
+        const userRef = ref(db, `users/${recipientKey}`);
+        const snapshot = await get(userRef);
+
+        if (!snapshot.exists()) {
+          messageDiv.style.color = "red";
+          messageDiv.innerText = "❌ Recipient not found!";
+          return;
+        }
+
+        const senderFilesRef = ref(db, `users/${senderKey}/uploaded_files`);
+        const senderFilesSnapshot = await get(senderFilesRef);
+        let fileName = "Unknown File";
+
+        if (senderFilesSnapshot.exists()) {
+          const uploadedFiles = senderFilesSnapshot.val();
+          for (const key in uploadedFiles) {
+            if (uploadedFiles[key].cid === fileCID) {
+              fileName = uploadedFiles[key].fileName || "Unknown File";
+              break;
+            }
+          }
+        }
+
+        const sharedFilesRef = ref(db, `users/${recipientKey}/shared_files`);
+        const newSharedFileRef = push(sharedFilesRef);
+
+        await set(newSharedFileRef, {
+          cid: fileCID,
+          fileName: fileName,
+          permission: permission,
+          shared_by: senderEmail,
+          timestamp: new Date().toISOString()
+        });
+
+        messageDiv.style.color = "#0D9276";
+        messageDiv.innerText = `✅ File '${fileName}' shared successfully!`;
+      } catch (error) {
+        console.error("Error sharing file:", error);
+        messageDiv.style.color = "red";
+        messageDiv.innerText = "❌ Error sharing file!";
+      }
+    }
+
+    document.getElementById("shareButton").addEventListener("click", shareFile);
+  </script>
+
+</body>
+</html>

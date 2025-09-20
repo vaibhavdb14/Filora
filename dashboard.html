@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #97E7E1, #AC87C5);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .sidebar {
+      width: 240px;
+      height: 100vh;
+      background: linear-gradient(180deg, #AC87C5, #7360DF);
+      color: white;
+      padding: 30px 20px;
+      position: fixed;
+      left: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+      animation: slideInLeft 0.8s ease;
+    }
+
+    @keyframes slideInLeft {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+
+    .sidebar h2 {
+      font-size: 1.8rem;
+      margin-bottom: 30px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .logout-btn {
+      background: #FF5F9E;
+      color: white;
+      padding: 12px;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: #e14e8e;
+      transform: translateY(-2px);
+    }
+
+    .main-content {
+      margin-left: 260px;
+      flex: 1;
+      padding: 30px;
+      animation: fadeIn 1s ease;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h3 {
+      font-size: 1.5rem;
+      color: #A91079;
+    }
+
+    .profile {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: url('profile.jpg') no-repeat center/cover;
+      border: 3px solid #A91079;
+      box-shadow: 0px 0px 10px rgba(169, 16, 121, 0.4);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+      margin-bottom: 19%;
+      flex: 1;
+    }
+
+    .card {
+  background: white;
+  border-radius: 18px;
+  padding: 25px 15px;
+  text-align: center;
+  text-decoration: none;
+  color: #333;
+  font-weight: bold;
+  font-size: 1rem;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+
+    .card i {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: #ffffff;
+      background-color: #A91079;
+      padding: 15px;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(169, 16, 121, 0.4);
+      transition: 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .card:hover i {
+      background-color: #08C2FF;
+      transform: scale(1.2);
+    }
+
+    /* Unique background overlays per card */
+    .card:nth-child(1) {
+      background: linear-gradient(135deg, #A3FFD6, #97E7E1);
+    }
+
+    .card:nth-child(2) {
+      background: linear-gradient(135deg, #FAD0C9, #FFB4B4);
+    }
+
+    .card:nth-child(3) {
+      background: linear-gradient(135deg, #D5FFE4, #93FFD8);
+    }
+
+    .card:nth-child(4) {
+      background: linear-gradient(135deg, #D3C0F9, #AC87C5);
+    }
+
+    .card span {
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div>
+      <h2>Dashboard</h2>
+    </div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <h3>Welcome to Secure File Sharing</h3>
+      <div class="profile"></div>
+    </div>
+    <div class="cards">
+      <a href="desktop.html" class="card">
+        <i class="fas fa-upload"></i>
+        <span>Upload</span>
+      </a>
+      <a href="sharedfiles.html" class="card">
+        <i class="fas fa-share-alt"></i>
+        <span>Shared</span>
+      </a>
+      <a href="viewfiles.html" class="card">
+        <i class="fas fa-folder-open"></i>
+        <span>View</span>
+      </a>
+      <a href="sharingfile.html" class="card">
+        <i class="fas fa-link"></i>
+        <span>Sharing</span>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    function logout() {
+      localStorage.removeItem("userEmail");
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Uploaded Files</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #97E7E1, #AC87C5);
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .files-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .file-card {
+            background: linear-gradient(135deg, #A3FFD6, #97E7E1);
+            color: #333;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            width: 250px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-card:hover {
+            background: linear-gradient(135deg, #0D9276, #08C2FF);
+            color: #fff;
+            transform: translateY(-5px);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .view {
+            background: #7360DF;
+        }
+
+        .view:hover {
+            background: #5e4acb;
+        }
+
+        .download {
+            background: #2DB67C;
+        }
+
+        .download:hover {
+            background: #219a68;
+        }
+
+        .remove {
+            background: #FF5F9E;
+        }
+
+        .remove:hover {
+            background: #e14e8e;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Your Uploaded Files</h1>
+        </div>
+        <div class="files-container" id="files-container">
+            <!-- Files will be populated here dynamically -->
+        </div>
+    </div>
+
+    <!-- Modal for Viewing Files -->
+    <div class="modal" id="fileModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()">Close</button>
+            <iframe id="fileViewer"></iframe>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getDatabase, ref, get, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "your-project.firebaseapp.com",
+            databaseURL: "your-database-url",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",  
+            messagingSenderId: "xxxx",
+            appId: "1:xxxx:web:xxxx"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const userEmail = localStorage.getItem("userEmail");
+
+        if (!userEmail) {
+            alert("User not logged in! Redirecting to login page...");
+            window.location.href = "index.html";
+        }
+
+        const userKey = btoa(userEmail);
+
+        async function fetchUserFiles() {
+            const userFilesRef = ref(db, `users/${userKey}/uploaded_files`);
+            const snapshot = await get(userFilesRef);
+
+            if (!snapshot.exists()) {
+                document.getElementById("files-container").innerHTML = "<p>No uploaded files found.</p>";
+                return;
+            }
+
+            const files = snapshot.val();
+            displayFiles(files);
+        }
+
+        function displayFiles(files) {
+            const container = document.getElementById("files-container");
+            container.innerHTML = "";
+
+            Object.keys(files).forEach(fileId => {
+                const file = files[fileId];
+                const fileName = file.fileName || "Unnamed File";
+
+                container.innerHTML += `
+                    <div class="file-card">
+                        <h2>${fileName}</h2>
+                        <button class="btn view" onclick="viewFile('${file.cid}')">View</button>
+                        <button class="btn download" onclick="downloadFile('${file.cid}')">Download</button>
+                        <button class="btn remove" onclick="removeFile('${fileId}')">Remove</button>
+                    </div>
+                `;
+            });
+        }
+
+        window.viewFile = function (cid) {
+            document.getElementById("fileViewer").src = `https://ipfs.io/ipfs/${cid}#toolbar=0`;
+            document.getElementById("fileModal").style.display = "flex";
+        };
+
+        window.closeModal = function () {
+            document.getElementById("fileModal").style.display = "none";
+            document.getElementById("fileViewer").src = "";
+        };
+
+        window.downloadFile = async function (cid) {
+            const downloadUrl = `https://ipfs.io/ipfs/${cid}`;
+            try {
+                const response = await fetch(downloadUrl);
+                if (!response.ok) throw new Error("File download failed.");
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "downloaded_file";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error("Error downloading file:", error);
+                alert("Failed to download file.");
+            }
+        };
+
+        window.removeFile = async function (fileId) {
+            const fileRef = ref(db, `users/${userKey}/uploaded_files/${fileId}`);
+            await remove(fileRef);
+            alert("File removed successfully!");
+            fetchUserFiles();
+        };
+
+        fetchUserFiles();
+    </script>
+</body>
+
+</html>
